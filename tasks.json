@@ -3,15 +3,18 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "AutoBuild ${fileDirname} OPENGL BUILD",
+            "label": "AutoBuild GL BUILD",
             "command": "C:/mingw64/bin/g++.exe",
             "args": [
                 "-g",
                 "-std=c++20",
                 "-I${workspaceFolder}/include",
+                "-I${workspaceFolder}/glew/include",
                 "-L${workspaceFolder}/lib",
                 "${workspaceFolder}/src/main.cpp",
                 "-lglfw3dll",
+                "-E","-lglew32s",
+                //"-lglew32s",
                 "-lopengl32", // Add this line
                 "-o",
                 "${workspaceFolder}/cutable.exe"
