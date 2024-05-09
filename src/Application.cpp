@@ -6,104 +6,12 @@
 #include <sstream> //* String Stream
 #include "Renderer.h"
 #include "VertexBuffer.h"
+#include "VertexBufferLayout.h"
 #include "IndexBuffer.h"
 #include "VertexArray.h"
+#include "Shader.h"
+#include "Texture.h"
 
-struct ShaderProgramSource
-{
-    std::string VertexSource;
-    std::string FragmentSource;
-};
-
-static ShaderProgramSource ParseShader(const std::string &filepath)
-{
-    std::ifstream stream(filepath);
-
-    enum class ShaderType
-    {
-        NONE = -1,
-        VERTEX = 0,
-        FRAGMENT = 1
-    }; //* This literally means the there is going to be a new type called shadertype and that has three insider types
-    //* None , Vertex , Fragment
-
-    std::stringstream ss[2];
-    std::string line;
-    ShaderType type = ShaderType::NONE;
-
-    while (getline(stream, line))
-    { 
-
-        if (line.find("#shader") != std::string::npos)
-        {
-            if (line.find("vertex") != std::string::npos)
-            {
-                type = ShaderType::VERTEX;
-            }
-            else if (line.find("fragment") != std::string::npos)
-            {
-                type = ShaderType::FRAGMENT;
-            }
-        }
-        else
-        {
-
-            ss[(int)type] << line << '\n'; //* This should divide our file into two
-        }
-    };
-    //* So now there is another problem we need to return two variables
-    //* There is a way in which we can just return a tuple
-    //* To do that we need to include the tuple library built-in
-    //* Use this syntax : return {item1 , item2}
-    //* To recieve we do : auto [item1, item2] = function(parameter1, param2)
-
-    //* Another way to do this is to return a struct . We follow this method
-    return ShaderProgramSource{ss[0].str(), ss[1].str()};
-}
-
-static unsigned int CompileShader(unsigned int type, const std::string &source)
-{
-    unsigned int id = glCreateShader(type);
-    const char *src = source.c_str();
-    glShaderSource(id, 1, &src, nullptr);
-    glCompileShader(id);
-
-    //* Error Handling
-    int result;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-    if (result == GL_FALSE)
-    {
-        int length;
-        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-        char *message = (char *)alloca(length * sizeof(char));
-        glGetShaderInfoLog(id, length, &length, message);
-        //* This is only for the two types of shaders
-        std::cout << "Failed to compile" << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << std::endl;
-        std::cout << message << std::endl;
-        glDeleteShader(id);
-        return 0;
-    }
-
-    return id;
-}
-
-static unsigned int CreateShader(const std::string &vertexShader, const std::string &fragmentShader)
-{
-    unsigned int program = glCreateProgram();
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-    glValidateProgram(program);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-
-    return program;
-}
 
 int main(void)
 {
@@ -151,10 +59,10 @@ int main(void)
     {
         //* Attributes //* Vertex 1 //* here there are 2 attributes in 1 vertex
         float positions[] = {
-            -0.5f , -0.5f, 
-             0.5f , -0.5f,
-             0.5f ,  0.5f,
-            -0.5f ,  0.5f,
+            -0.5f , -0.5f, 0.0f , 0.0f ,
+             0.5f , -0.5f, 1.0f , 0.0f ,
+             0.5f ,  0.5f, 1.0f , 1.0f ,
+            -0.5f ,  0.5f, 0.0f , 1.0f ,
         };
     
     
@@ -162,7 +70,10 @@ int main(void)
             0, 1, 2,
             2, 3, 0
         };
-    
+        int maxTextureSize;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+        std::cout << "Maximum texture size supported: " << maxTextureSize << "x" << maxTextureSize << std::endl;
+
     
     
         // unsigned int vao;
@@ -170,9 +81,10 @@ int main(void)
         // GLCall(glBindVertexArray(vao));
     
         VertexArray va;
-        VertexBuffer vb(positions , 4 * 2 * sizeof(float));
+        VertexBuffer vb(positions , 4 * 4 * sizeof(float));
 
         VertexBufferLayout layout;
+        layout.PushFloat(2);
         layout.PushFloat(2);
         va.AddBuffer(vb, layout);
 
@@ -184,11 +96,13 @@ int main(void)
         IndexBuffer ib(indices , 6); //* IBO stands for index-buffer-object
     
         //* Using a shader
-        ShaderProgramSource source = ParseShader("./res/shaders/BasicShader.txt");
-    
-        unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
-        GLCall(glUseProgram(shader));
-    
+        Shader shader("./res/shaders/BasicShader.txt");
+        shader.Bind();
+        // shader.SetUniform4f("u_Color",0.8f,0.3f,0.8f,1.0f );
+
+        Texture texture("C:\\Users\\user\\Documents\\manasayjoseph\\Faith\\res\\textures\\logo.png");
+        texture.Bind();
+        shader.SetUniform1i("u_Texture", 0);
     
     
         
@@ -196,15 +110,15 @@ int main(void)
         //* The 4f here means the number of data and datatype
         //* Here it is 4 because RGBA
         
-        int location = glGetUniformLocation(shader , "u_Color");
-        ASSERT(location != -1);
-        GLCall(glUniform4f(location,0.2f,0.3f,0.8f,0.4f));
     
         va.Unbind();
-        GLCall(glUseProgram(0));
-        GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0));
+        vb.Unbind();
+        ib.Unbind();
+        shader.Unbind();
+
+        Renderer renderer;
     
+
     
         float r = 0.0f;
         float increment = 0.05f;
@@ -212,18 +126,19 @@ int main(void)
         while (!glfwWindowShouldClose(window))
         {
             /* Render here */
-            glClear(GL_COLOR_BUFFER_BIT);
+            renderer.Clear();
     
             //* Using modern OpenGL to draw a triangle
             //glDrawArrays(GL_TRIANGLES, 0, 4); //* Without using Index buffers
-            GLCall(glUseProgram(shader));
-            GLCall(glUniform4f(location,r,r,0.8f,0.4f)); //* We are trying to animate the color 
+
     
             va.Bind();
             ib.Bind();
     
-    
-            GLCall(glDrawElements(GL_TRIANGLES , 6, GL_UNSIGNED_INT , nullptr));
+            shader.Bind();
+            // shader.SetUniform4f("u_Color",r,0.3f,0.8f,1.0f);
+
+            renderer.Draw(va,ib,shader);
     
     
             if (r > 1.0f)increment = -0.05f;
@@ -241,7 +156,7 @@ int main(void)
             GLCall(glfwPollEvents());
         }
         
-        GLCall(glDeleteProgram(shader));
+
     }
     glfwTerminate();
 

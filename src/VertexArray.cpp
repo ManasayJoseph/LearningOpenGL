@@ -1,10 +1,12 @@
 #include "VertexArray.h"
 #include "Renderer.h"
 #include "VertexBufferLayout.h"
+#include <iostream>
 VertexArray::VertexArray()
 {
+    
     GLCall(glGenVertexArrays(1, &m_RendererID));
-
+    std::cout << m_RendererID << std::endl;
 }
 
 VertexArray::~VertexArray()
