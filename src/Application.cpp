@@ -24,9 +24,9 @@ int main(void)
     //* Initializing glew
 
     //* Window Hints
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR , 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR , 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE , GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR , 3);
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR , 3);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE , GLFW_OPENGL_CORE_PROFILE);
 
 
 
@@ -72,6 +72,7 @@ int main(void)
         };
         int maxTextureSize;
         glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+     
         std::cout << "Maximum texture size supported: " << maxTextureSize << "x" << maxTextureSize << std::endl;
 
     
@@ -100,7 +101,7 @@ int main(void)
         shader.Bind();
         // shader.SetUniform4f("u_Color",0.8f,0.3f,0.8f,1.0f );
 
-        Texture texture("C:\\Users\\user\\Documents\\manasayjoseph\\Faith\\res\\textures\\logo.png");
+        Texture texture("./res/textures/flowers.jpg");
         texture.Bind();
         shader.SetUniform1i("u_Texture", 0);
     
